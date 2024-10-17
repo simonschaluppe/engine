@@ -1,3 +1,4 @@
+from queue import Queue
 import string
 import pygame
 from camera import Camera2D
@@ -47,25 +48,53 @@ class Engine:
         self.input_handler = InputHandler()
         self.current_scene = Scene()
 
+        self.render_stack = []
+
     def run(self):
         while True:
             # handle events
             self.input_handler.update()
 
+            self.renderer.display.fill((0, 0, 0))
+            for render_callback, data_dict in self.render_stack:
+                render_callback(**data_dict)
             # render calls
-            self.renderer.render_text_scene(
-                title=self.current_scene.title,
-                text=self.current_scene.text,
-                options=self.current_scene.get_options_text(),
-            )
-
             self.screen.blit(self.renderer.display, (0, 0))
             pygame.display.update()
 
     def switch_to(self, scene: Scene):
-        self.current_scene = scene
+
         self.input_handler.reset()  # is this appropiate?
         self.create_keybindings_from_options(scene.options)
+        render_callback = self.renderer.render_text_scene
+        data = dict(
+            title=scene.title,
+            text=scene.text,
+            options=scene.get_options_text(),
+        )
+        self.set_rendering_callback(render_callback, data)
+        self.current_scene = scene
+
+    def show_dialog(self, scene):
+        self.input_handler.reset()  # is this appropiate?
+        self.create_keybindings_from_options(scene.options)
+        self.add_rendering_callbacks(
+            (
+                self.renderer.render_dialog,
+                dict(
+                    title=scene.title,
+                    text=scene.text,
+                    options=scene.get_options_text(),
+                ),
+            )
+        )
+
+    def set_rendering_callback(self, render_callback, data=None):
+        self.render_stack = [(render_callback, data)]
+
+    def add_rendering_callbacks(self, *tuples):
+        for t in tuples:
+            self.render_stack.append(t)
 
     def create_keybindings_from_options(self, options: list[Option]):
         used_keys = []

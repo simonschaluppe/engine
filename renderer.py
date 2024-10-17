@@ -17,6 +17,7 @@ colors = {
     "Button hovered": (61, 98, 116),
     "Button": (51, 58, 96),
     "UI Text": (76, 37, 29),
+    "Dialog Background": (51, 58, 96),
 }
 
 # Define color constants
@@ -188,10 +189,18 @@ class Renderer:
             )
 
     def render_text_scene(self, title, text, options):
-        self.display.fill((10, 20, 60))
+        # self.display.fill((10, 20, 60))
         self.draw_text(title, pos=(50, 50), size=30)
         self.draw_text(text, pos=(50, 100), size=20)
         self.draw_text(options, pos=(50, 400), size=20)
+
+    def render_dialog(self, title, text, options):
+        dialog = pg.Surface(((400, 150)))
+        dialog.fill(colors["Dialog Background"])
+        self.draw_text(title, pos=(20, 20), size=20, onto=dialog)
+        self.draw_text(text, pos=(20, 45), size=20, onto=dialog)
+        self.draw_text(options, pos=(20, 80), size=20, onto=dialog)
+        self.display.blit(dialog, (200, 200))
 
 
 if __name__ == "__main__":

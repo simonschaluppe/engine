@@ -57,11 +57,12 @@ class Engine:
             self.renderer.display.fill((0, 0, 0))
             for render_callback, data_dict in self.render_stack:
                 render_callback(**data_dict)
+
             # render calls
             self.screen.blit(self.renderer.display, (0, 0))
             pygame.display.update()
 
-    def switch_to(self, scene: Scene):
+    def show_scene(self, scene: Scene):
 
         self.input_handler.reset()  # is this appropiate?
         self.create_keybindings_from_options(scene.options)
@@ -71,7 +72,8 @@ class Engine:
             text=scene.text,
             options=scene.get_options_text(),
         )
-        self.set_rendering_callback(render_callback, data)
+        self.render_stack.pop()
+        self.add_rendering_callbacks((render_callback, data))
 
     def show_dialog(self, scene):
         self.input_handler.reset()  # is this appropiate?

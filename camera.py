@@ -21,7 +21,8 @@ class Camera2D(Camera):
         surface: pg.Surface = None,
         game_world_position=(0, 0),
         zoom: tuple = (1, 1),
-        isometry_angle: int = 0,
+        rotation: int = 0,
+        flatness=1,
     ):
         self.screen = surface
         self.screen_width, self.screen_height = surface.get_size()
@@ -29,10 +30,9 @@ class Camera2D(Camera):
         self.proj_startpoint = self.proj_center
         # self.drag_startpoint = self.proj_center
         self.position = pg.Vector2(*game_world_position)
-        self.ex, self.ey = pg.Vector2(
-            math.sin(isometry_angle / 360 * 2 * math.pi),
-            math.cos(isometry_angle / 360 * 2 * math.pi),
-        )
+        self.rotation = rotation
+        self.flatness = flatness
+        self.ex, self.ey = self.get_transformation_matrix(self.rotation, self.flatness)
         self.zoom_level = zoom
         self.follows = None
         self.relative_speed = pg.Vector2(0, 0)  # in game coordinates?
@@ -49,11 +49,24 @@ class Camera2D(Camera):
         )
         self.proj_center = self.proj_startpoint + direction
 
-    def set_isometry_angle(self, angle):
-        self.ex, self.ey = pg.Vector2(
-            math.sin(angle / 360 * 2 * math.pi),
-            math.cos(angle / 360 * 2 * math.pi),
+    def set_isometry(self, flatness):
+        self.flatness = flatness
+        self.ex, self.ey = self.get_transformation_matrix(self.rotation, self.flatness)
+
+    def set_rotation(self, rotation):
+        self.rotation = rotation
+        self.ex, self.ey = self.get_transformation_matrix(self.rotation, self.flatness)
+
+    def get_transformation_matrix(self, rotation, flatness):
+        ex = pg.Vector2(
+            math.cos(rotation / 360 * 2 * math.pi),
+            flatness * math.sin(rotation / 360 * 2 * math.pi),
         )
+        ey = -pg.Vector2(
+            -math.sin(rotation / 360 * 2 * math.pi),
+            flatness * math.cos(rotation / 360 * 2 * math.pi),
+        )
+        return ex, ey
 
     def follow(self, Node, maxdist=1):
         self.maxdist = maxdist  # is in screencoords, should be game coords?
@@ -104,8 +117,8 @@ class Camera2D(Camera):
             return self.screen_coords(pg.Vector2(*game_coords))
         else:
             x, y = game_coords - self.position
-            x_camera = (x + y * self.ex) * self.zoom_level[0]
-            y_camera = -(y * self.ey) * self.zoom_level[1]
+            x_camera = (x * self.ex[0] + y * self.ey[0]) * self.zoom_level[0]
+            y_camera = (x * self.ex[1] + y * self.ey[1]) * self.zoom_level[1]
             return pg.Vector2(x_camera, y_camera) + self.proj_center
 
     def game_coords(self, screen_coords) -> pg.Vector2:

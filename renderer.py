@@ -227,17 +227,16 @@ class Renderer:
 
     def render_tile(self, game_coords, color):
         x, y = game_coords
-        pg.draw.polygon(
+        rect = pg.draw.polygon(
             surface=self.display,
             points=self.screen_coords([(x, y), (x + 1, y), (x + 1, y + 1), (x, y + 1)]),
             color=color,
         )
+        if self.debug:
+            pg.draw.rect(self.display, rect=rect, color=self.colors["DEBUG"], width=1)
 
     def render_tilemap(
-        self,
-        tilemap: list[tuple[tuple, tuple, str]],
-        grid=True,
-        info=True,
+        self, tilemap: list[tuple[tuple, tuple, str]], grid=True, info=True, mask=False
     ):
         for pos, color, s in tilemap:
             self.render_tile(pos, color)
@@ -264,7 +263,7 @@ if __name__ == "__main__":
     screen = pg.display.set_mode((800, 600))
 
     display = pg.Surface((800, 600))
-    camera = Camera2D(display, isometry_angle=30, zoom=(1, 1))
+    camera = Camera2D(display, rotation=30, zoom=(1, 1))
     renderer = Renderer(display, camera)
 
     while True:

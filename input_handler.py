@@ -2,6 +2,23 @@ from functools import partial
 import pygame as pg
 
 
+class Clickable:
+    mask: pg.Mask
+    rect: pg.Rect
+    callback: callable
+
+    def __init__(self, mask: pg.Mask, callback: callable):
+        self.mask = mask
+        self.rect = mask.get_rect()
+        self.callback = callback
+
+    def collides(self, other: tuple[int, int]) -> bool:
+        if self.rect.collidepoints(other):
+            return True
+            print("need to check mask!")
+        return False
+
+
 class Button:
     def __init__(self, pos, callback, text="", size=(150, 40)):
         self.position = pos
@@ -36,6 +53,13 @@ class InputHandler(object):
         self.continuous_mousebutton_bindings = {}
 
         self.buttons = []
+
+        # needs to keep track of a list of clickables
+        # the clickables should be twostaged:
+        # first check for "Rect" collisiions
+        # if yes, then check for mask collision
+        # the callback works like buttons?
+        #
 
     def register_button(self, button):
         """Register a button to be checked for clicks."""
@@ -143,9 +167,9 @@ class InputHandler(object):
 
     def reset(self):
         self.keypress_bindings = {}
-        self.keyrelease_bindings = {}
-        self.continuous_keypress_bindings = {}
-        self.mousebutton_bindings = {}
-        self.continuous_mousebutton_bindings = {}
+        # self.keyrelease_bindings = {}
+        # self.continuous_keypress_bindings = {}
+        # self.mousebutton_bindings = {}
+        # self.continuous_mousebutton_bindings = {}
 
         self.buttons = []

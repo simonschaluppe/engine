@@ -1,3 +1,4 @@
+from functools import partial
 import pygame as pg
 
 
@@ -50,7 +51,7 @@ class InputHandler(object):
         self.continuous_keypress_bindings[key] = action
 
     def bind_mousebutton_down(self, button, action):
-        """left mousebutton is button 0"""
+        """left mousebutton is button 1"""
         self.mousebutton_bindings[button] = action
 
     def bind_continuous_mousebutton(self, button, action):
@@ -63,14 +64,19 @@ class InputHandler(object):
         self.bind_continuous_keypress(pg.K_a, lambda: mover.turn(angle=turnspeed))
         self.bind_continuous_keypress(pg.K_d, lambda: mover.turn(angle=-turnspeed))
 
-    def bind_camera(self, camera):
-        self.bind_mousebutton_down(4, lambda: camera.zoom(1.1))
-        self.bind_mousebutton_down(5, lambda: camera.zoom(0.9))
-        self.bind_continuous_keypress(pg.K_UP, lambda: camera.move((0, 10)))
-        self.bind_continuous_keypress(pg.K_DOWN, lambda: camera.move((0, -10)))
-        self.bind_continuous_keypress(pg.K_LEFT, lambda: camera.move((-10, 0)))
-        self.bind_continuous_keypress(pg.K_RIGHT, lambda: camera.move((10, 0)))
-        self.bind_keypress(pg.K_r, camera.reset)
+    def bind_mousewheel_to_camera_zoom(self, camera, change=0.1):
+        self.bind_mousebutton_down(4, lambda: camera.zoom(1 + change))
+        self.bind_mousebutton_down(5, lambda: camera.zoom(1 - change))
+
+    def bind_arrows_to_camera_pan(self, camera, speed=1):
+        self.bind_continuous_keypress(pg.K_UP, lambda: camera.move((0, speed)))
+        self.bind_continuous_keypress(pg.K_DOWN, lambda: camera.move((0, -speed)))
+        self.bind_continuous_keypress(pg.K_LEFT, lambda: camera.move((-speed, 0)))
+        self.bind_continuous_keypress(pg.K_RIGHT, lambda: camera.move((speed, 0)))
+
+    def bind_mouse1_drag_tp_camera_pan(self, camera):
+        self.bind_mousebutton_down(1, camera.drag_start)  # event.button 1 is mouse 1
+        self.bind_continuous_mousebutton(0, camera.move_to)  # continous
 
     def handle_mouse_movement(self):
         mousepos = pg.mouse.get_pos()
@@ -78,6 +84,7 @@ class InputHandler(object):
             button.is_hovering(mousepos)
 
     def handle_mouse_down(self, event):
+        print(event.button)
         if event.button in self.mousebutton_bindings:
             self.mousebutton_bindings[event.button]()
         for button in self.buttons:

@@ -26,6 +26,8 @@ class Camera2D(Camera):
         self.screen = surface
         self.screen_width, self.screen_height = surface.get_size()
         self.proj_center = pg.Vector2(self.screen_width // 2, self.screen_height // 2)
+        self.proj_startpoint = self.proj_center
+        # self.drag_startpoint = self.proj_center
         self.position = pg.Vector2(*game_world_position)
         self.ex, self.ey = pg.Vector2(
             math.sin(isometry_angle / 360 * 2 * math.pi),
@@ -34,6 +36,23 @@ class Camera2D(Camera):
         self.zoom_level = zoom
         self.follows = None
         self.relative_speed = pg.Vector2(0, 0)  # in game coordinates?
+
+    def drag_start(self):
+        mouse_pos = pg.mouse.get_pos()
+        print(f"starting drag at {mouse_pos}")
+        self.drag_startpoint = pg.Vector2(mouse_pos)
+        self.proj_startpoint = self.proj_center
+
+    def move_to(self):
+        direction = pg.mouse.get_pos() - self.drag_startpoint
+        print(f"Drag to {direction}")
+        self.proj_center = self.proj_startpoint + direction
+
+    def set_isometry_angle(self, angle):
+        self.ex, self.ey = pg.Vector2(
+            math.sin(angle / 360 * 2 * math.pi),
+            math.cos(angle / 360 * 2 * math.pi),
+        )
 
     def follow(self, Node, maxdist=1):
         self.maxdist = maxdist  # is in screencoords, should be game coords?

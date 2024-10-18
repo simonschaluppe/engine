@@ -56,11 +56,20 @@ def hexagon_points(center=pg.Vector2(0, 0), r=1):
 
 
 class Renderer:
-    def __init__(self, display: pg.Surface, camera: Camera2D, scale=1.0):
+    def __init__(
+        self,
+        display: pg.Surface,
+        camera: Camera2D,
+        scale=1.0,
+        colors=colors,
+        debug=True,
+    ):
         self.display = display
         self.cx, self.cy = display.get_width() // 2, display.get_height() // 2
         self.camera = camera
         self.scale = scale
+        self.colors = colors
+        self.debug = debug
 
         # defaults
         self.lineheight = 25
@@ -80,30 +89,42 @@ class Renderer:
             )
 
     def draw_grid(
-        self, xrange: tuple, yrange: tuple, spacing=10, color="blue", labels=False
+        self,
+        xrange: tuple,
+        yrange: tuple,
+        spacing=1,
+        color="blue",
+        labels=False,
+        width=2,
     ):
         # how many spacings in camera screen coordinates?
         minx, maxx = xrange
         miny, maxy = yrange
-        for x in range(minx, maxx, spacing):
+        for x in range(minx, maxx + 1, spacing):
             pg.draw.line(
-                self.display, color, *self.screen_coords([(x, miny), (x, maxy)])
+                self.display,
+                color,
+                *self.screen_coords([(x, miny), (x, maxy)]),
+                width=width,
             )
-            if labels:
-                self.draw_text(str(x), pos=self.screen_coords(x, miny))
-        for y in range(miny, maxy, spacing):
+            if labels and x < maxx:  # x axis
+                self.draw_text(str(x), pos=self.screen_coords(x + 0.5, miny - 0.5))
+        for y in range(miny, maxy + 1, spacing):
             pg.draw.line(
-                self.display, color, *self.screen_coords([(minx, y), (maxx, y)])
+                self.display,
+                color,
+                *self.screen_coords([(minx, y), (maxx, y)]),
+                width=width,
             )
-            if labels:
-                self.draw_text(str(y), pos=self.screen_coords(minx, y))
+            if labels and y < maxy:
+                self.draw_text(str(y), pos=self.screen_coords(minx - 0.5, y + 0.5))
 
     # debug stuff, should be low level
     def debug(self, statements):
         # Render debug statements
         for i, (label, callback) in enumerate(statements.items()):
             debug_text = f"{label}: {callback()}"
-            self.draw_text(debug_text, colors["DEBUG"], (10, 10 + i * self.lineheight))
+            self.draw_text(debug_text, self.colors["DEBUG"], (10, i * self.lineheight))
 
     # basic rendering
     def outline(self, surf, loc, pixel, color=(10, 10, 10), onto=False):
@@ -142,6 +163,8 @@ class Renderer:
         textsurf = font.surface(text, size, color)
         self.outline(textsurf, (px, py), border_width, border_color, onto=onto)
         font.render(onto, text, (px, py), size, color)
+        if self.debug:
+            pg.draw.rect(onto, self.colors["DEBUG"], (px, py, 3, 3))
 
     def draw_text(
         self, text: str, color=ALMOSTBLACK, pos=(0, 0), lineheight=None, **kwargs
@@ -149,14 +172,14 @@ class Renderer:
         px, py = pos
         dy = 0
         for line in text.splitlines():
-            dy += lineheight if lineheight else self.lineheight
             self.draw_textline(line, color, (px, py + dy), **kwargs)
+            dy += lineheight if lineheight else self.lineheight
 
     # button
     def render_button(self, button):
         button_surf = pg.Surface(button.size)
         button_surf.fill(
-            colors["Button hovered"] if button.hovered else colors["Button"]
+            self.colors["Button hovered"] if button.hovered else self.colors["Button"]
         )
         # outline
         self.outline(
@@ -196,11 +219,44 @@ class Renderer:
 
     def render_dialog(self, title, text, options):
         dialog = pg.Surface(((400, 150)))
-        dialog.fill(colors["Dialog Background"])
+        dialog.fill(self.colors["Dialog Background"])
         self.draw_text(title, pos=(20, 20), size=20, onto=dialog)
         self.draw_text(text, pos=(20, 45), size=20, onto=dialog)
         self.draw_text(options, pos=(20, 80), size=20, onto=dialog)
         self.display.blit(dialog, (200, 200))
+
+    def render_tile(self, game_coords, color):
+        x, y = game_coords
+        pg.draw.polygon(
+            surface=self.display,
+            points=self.screen_coords([(x, y), (x + 1, y), (x + 1, y + 1), (x, y + 1)]),
+            color=color,
+        )
+
+    def render_tilemap(
+        self,
+        tilemap: list[tuple[tuple, tuple, str]],
+        grid=True,
+        info=True,
+    ):
+        for pos, color, s in tilemap:
+            self.render_tile(pos, color)
+
+        if grid:
+            self.draw_grid(
+                xrange=(-4, 5),
+                yrange=(-4, 5),
+                spacing=1,
+                labels=True,
+                color=self.colors["Grid"],
+            )
+        if info:
+            for pos, color, s in tilemap:
+                self.draw_text(
+                    s,
+                    color,
+                    self.screen_coords(pos[0] + 0.3, pos[1] + 0.5),
+                )
 
 
 if __name__ == "__main__":
@@ -222,8 +278,6 @@ if __name__ == "__main__":
         mouse_game = renderer.camera.game_coords(mouse)
         mouse_screen = renderer.camera.screen_coords(mouse_game)
         print(mouse, mouse_game, mouse_screen)
-
-        #        renderer.draw_grid(screen)
 
         pg.draw.polygon(
             renderer.display,

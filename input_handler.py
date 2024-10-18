@@ -64,19 +64,19 @@ class InputHandler(object):
         self.bind_continuous_keypress(pg.K_a, lambda: mover.turn(angle=turnspeed))
         self.bind_continuous_keypress(pg.K_d, lambda: mover.turn(angle=-turnspeed))
 
-    def bind_mousewheel_to_camera_zoom(self, camera, change=0.1):
+    def bind_camera_zoom_to_mousewheel(self, camera, change=0.1):
         self.bind_mousebutton_down(4, lambda: camera.zoom(1 + change))
         self.bind_mousebutton_down(5, lambda: camera.zoom(1 - change))
 
-    def bind_arrows_to_camera_pan(self, camera, speed=1):
+    def bind_camera_pan_to_arrows_keys(self, camera, speed=1):
         self.bind_continuous_keypress(pg.K_UP, lambda: camera.move((0, speed)))
         self.bind_continuous_keypress(pg.K_DOWN, lambda: camera.move((0, -speed)))
         self.bind_continuous_keypress(pg.K_LEFT, lambda: camera.move((-speed, 0)))
         self.bind_continuous_keypress(pg.K_RIGHT, lambda: camera.move((speed, 0)))
 
-    def bind_mouse1_drag_tp_camera_pan(self, camera):
-        self.bind_mousebutton_down(1, camera.drag_start)  # event.button 1 is mouse 1
-        self.bind_continuous_mousebutton(0, camera.move_to)  # continous
+    def bind_camera_pan_to_mousedrag(self, camera, button=1):
+        self.bind_mousebutton_down(button, camera.drag_start)
+        self.bind_continuous_mousebutton(button - 1, camera.move_to)  # continous
 
     def handle_mouse_movement(self):
         mousepos = pg.mouse.get_pos()

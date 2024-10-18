@@ -46,7 +46,6 @@ class Engine:
         camera = Camera2D(display, zoom=(1, 1))
         self.renderer = Renderer(display, camera=camera)
         self.input_handler = InputHandler()
-        self.current_scene = Scene()
 
         self.render_stack = []
 
@@ -73,13 +72,6 @@ class Engine:
             options=scene.get_options_text(),
         )
         self.set_rendering_callback(render_callback, data)
-        self.current_scene = scene
-
-    def show_main_screen(self, main_renderer, main_data, ui_renderer, ui_data):
-        # self.input_handler.reset()
-        # add main screen input handling
-        self.set_rendering_callback(main_renderer, main_data)
-        self.add_rendering_callbacks((ui_renderer, ui_data))
 
     def show_dialog(self, scene):
         self.input_handler.reset()  # is this appropiate?

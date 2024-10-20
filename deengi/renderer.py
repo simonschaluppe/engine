@@ -3,8 +3,8 @@ import pygame as pg
 import math
 from pathlib import Path
 
-from camera import Camera2D
-from font import Font
+from .camera import Camera2D
+from .font import Font
 
 ROOT_PATH = Path(__file__).parent
 sys.path.append(ROOT_PATH)
@@ -263,7 +263,7 @@ if __name__ == "__main__":
     screen = pg.display.set_mode((800, 600))
 
     display = pg.Surface((800, 600))
-    camera = Camera2D(display, rotation=30, zoom=(1, 1))
+    camera = Camera2D(display, rotation=45, flatness=0.5)
     renderer = Renderer(display, camera)
 
     while True:
@@ -288,7 +288,29 @@ if __name__ == "__main__":
             "darkgreen",
             renderer.screen_coords(hexagon_points((160, 100), r=100)),
         )
-        renderer.draw_grid((-400, 400), (-400, 400), spacing=50, labels=True)
+        renderer.draw_grid((-1000, 1000), (-1000, 1000), spacing=100, labels=True)
 
         screen.blit(renderer.display, (0, 0))
+
+        tile = pg.image.load("../ClimStar/assets/images/tile.png").convert_alpha()
+
+        tile = pg.transform.scale(tile, (200, 200))
+        tile.set_colorkey((255, 0, 0))
+        screen.blit(tile, renderer.screen_coords(0, 0))
+        screen.blit(tile, renderer.screen_coords(-200, -200))
+
+        mask = pg.mask.from_surface(tile)
+        screen.blit(
+            mask.to_surface(
+                unsetcolor=(0, 0, 0, 0),
+                setcolor=(255, 0, 0),
+            ),
+            renderer.screen_coords(0, -200),
+        )
+
+        mouse = pg.Surface((5, 5))
+        mouse.fill((0, 155, 50))
+
+        screen.blit(mouse, pg.mouse.get_pos())
+
         pg.display.update()

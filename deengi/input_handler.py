@@ -1,4 +1,3 @@
-from functools import partial
 import pygame as pg
 
 
@@ -129,15 +128,9 @@ class InputHandler(object):
             quit()
         elif event.type == pg.KEYDOWN:
             if event.key in self.keypress_bindings:
-                # print(
-                #     f"key pressed: {event.key} > calling {self.keypress_bindings[event.key].__name__}"
-                # )
                 self.keypress_bindings[event.key]()
         elif event.type == pg.KEYUP:
             if event.key in self.keyrelease_bindings:
-                # print( # __name__ does not work with partial(function) callbacks
-                #    f"key released: {event.key} > calling {self.keyrelease_bindings[event.key].__name__}"
-                # )
                 self.keyrelease_bindings[event.key]()
         elif event.type == pg.MOUSEBUTTONDOWN:
             self.handle_mouse_down(event)

@@ -1,9 +1,8 @@
-from queue import Queue
-import string
 import pygame
-from camera import Camera2D
-from input_handler import InputHandler
-from renderer import Renderer
+
+from .camera import Camera2D
+from .input_handler import InputHandler
+from .renderer import Renderer
 
 
 class Option:

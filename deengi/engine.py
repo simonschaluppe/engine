@@ -3,36 +3,8 @@ import pygame
 from .camera import Camera2D
 from .input_handler import InputHandler
 from .renderer import Renderer
-
-
-class Option:
-    text: str
-    callback: callable
-
-    def __init__(self, text, callback):
-        self.text = text
-        self.callback = callback
-
-    def __str__(self):
-        return self.text
-
-
-class Scene:
-    options: list[Option]
-    title: str = "Title"
-    text: str = "filler text"
-
-    def __init__(self, title="", text=""):
-        self.title = title
-        self.text = text
-        self.options = []
-
-    def get_options_text(self):
-        return "\n".join([str(o) for o in self.options])
-
-    def add_options(self, *options):
-        for option in options:
-            self.options.append(option)
+from .tiles import Tilemap
+from .ui import Scene, Option
 
 
 class Engine:
@@ -47,6 +19,27 @@ class Engine:
         self.input_handler = InputHandler()
 
         self.render_stack = []
+
+    def setup_camera(
+        self,
+        rotation=0,
+        isometry=0.3,
+        zoom=30,
+        mousewheelzoom=True,
+        mousedrag_pan=True,
+        arrow_rotate=True,
+    ):
+        self.renderer.camera.set_rotation(rotation)
+        self.renderer.camera.set_isometry(isometry)
+        self.renderer.camera.zoom(zoom)
+        if mousewheelzoom:
+            self.input_handler.bind_camera_zoom_to_mousewheel(self.renderer.camera)
+        if mousedrag_pan:
+            self.input_handler.bind_camera_pan_to_mousedrag(
+                self.renderer.camera, button=1
+            )
+        if arrow_rotate:
+            self.input_handler.bind_camera_rotate_to_arrow_keys(self.renderer.camera)
 
     def run(self):
         while True:
@@ -64,7 +57,7 @@ class Engine:
     def show_scene(self, scene: Scene):
 
         self.input_handler.reset()  # is this appropiate?
-        self.create_keybindings_from_options(scene.options)
+        self.input_handler.bind_options_to_keys(scene.options)
         render_callback = self.renderer.render_text_scene
         data = dict(
             title=scene.title,
@@ -76,7 +69,7 @@ class Engine:
 
     def show_dialog(self, scene):
         self.input_handler.reset()  # is this appropiate?
-        self.create_keybindings_from_options(scene.options)
+        self.input_handler.bind_options_to_keys(scene.options)
         self.add_rendering_callbacks(
             (
                 self.renderer.render_dialog,
@@ -95,23 +88,13 @@ class Engine:
         for t in tuples:
             self.render_stack.append(t)
 
-    def create_keybindings_from_options(self, options: list[Option]):
-        used_keys = []
-        prefix = ""
-        for i, option in enumerate(options):
-            if i < 9 and i + 1 not in used_keys:
-                used_keys.append(i + 1)
-                self.input_handler.bind_keypress(49 + i, option.callback)  # 49 = K_1
-                prefix = f"{i+1}. "
-            first_letter = option.text[:1].lower()
-            rest = option.text[1:]
-            if first_letter not in used_keys:
-                used_keys.append(first_letter)
-                self.input_handler.bind_keypress(
-                    ord(first_letter), option.callback
-                )  # 49 = K_1
-                option.text = f"[{first_letter.upper()}]{rest}"
-            option.text = prefix + option.text
+    def create_tilemap(self, positions: list, sizes: list, colors: list):
+        self.tilemap = Tilemap(positions, sizes, colors)
+
+    def show_tilemap(self):
+        self.set_rendering_callback(
+            self.renderer.render_tilemap, {"tilemap": self.tilemap}
+        )
 
     def quit(self):
         pygame.quit()

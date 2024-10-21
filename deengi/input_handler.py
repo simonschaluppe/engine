@@ -1,4 +1,7 @@
+from functools import partial
 import pygame as pg
+
+from deengi.ui import Option
 
 
 class Clickable:
@@ -97,9 +100,31 @@ class InputHandler(object):
         self.bind_continuous_keypress(pg.K_LEFT, lambda: camera.move((-speed, 0)))
         self.bind_continuous_keypress(pg.K_RIGHT, lambda: camera.move((speed, 0)))
 
+    def bind_camera_rotate_to_arrow_keys(self, camera, speed=0.5):
+        self.bind_continuous_keypress(pg.K_UP, partial(camera.tilt, speed / 360))
+        self.bind_continuous_keypress(pg.K_DOWN, partial(camera.tilt, -speed / 360))
+        self.bind_continuous_keypress(pg.K_LEFT, partial(camera.rotate, speed))
+        self.bind_continuous_keypress(pg.K_RIGHT, partial(camera.rotate, -speed))
+
     def bind_camera_pan_to_mousedrag(self, camera, button=1):
         self.bind_mousebutton_down(button, camera.drag_start)
         self.bind_continuous_mousebutton(button - 1, camera.move_to)  # continous
+
+    def bind_options_to_keys(self, options: list[Option]):
+        used_keys = []
+        prefix = ""
+        for i, option in enumerate(options):
+            if i < 9 and i + 1 not in used_keys:
+                used_keys.append(i + 1)
+                self.bind_keypress(49 + i, option.callback)  # 49 = K_1
+                prefix = f"{i+1}. "
+            first_letter = option.text[:1].lower()
+            rest = option.text[1:]
+            if first_letter not in used_keys:
+                used_keys.append(first_letter)
+                self.bind_keypress(ord(first_letter), option.callback)  # 49 = K_1
+                option.text = f"[{first_letter.upper()}]{rest}"
+            option.text = prefix + option.text
 
     def handle_mouse_movement(self):
         mousepos = pg.mouse.get_pos()

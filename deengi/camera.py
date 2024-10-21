@@ -50,12 +50,18 @@ class Camera2D(Camera):
         self.proj_center = self.proj_startpoint + direction
 
     def set_isometry(self, flatness):
-        self.flatness = flatness
+        self.flatness = max(0.05, min(flatness, 1))
         self.ex, self.ey = self.get_transformation_matrix(self.rotation, self.flatness)
 
+    def tilt(self, amount):
+        self.set_isometry(self.flatness + amount)
+
     def set_rotation(self, rotation):
-        self.rotation = rotation
+        self.rotation = rotation % 360
         self.ex, self.ey = self.get_transformation_matrix(self.rotation, self.flatness)
+
+    def rotate(self, angle):
+        self.set_rotation(self.rotation + angle)
 
     def get_transformation_matrix(self, rotation, flatness):
         ex = pg.Vector2(

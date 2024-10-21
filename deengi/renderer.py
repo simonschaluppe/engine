@@ -1,7 +1,10 @@
 import sys
+from types import DynamicClassAttribute
 import pygame as pg
 import math
 from pathlib import Path
+
+from deengi.tiles import Tile, Tilemap
 
 from .camera import Camera2D
 from .font import Font
@@ -225,23 +228,24 @@ class Renderer:
         self.draw_text(options, pos=(20, 80), size=20, onto=dialog)
         self.display.blit(dialog, (200, 200))
 
-    def render_tile(self, game_coords, color):
-        x, y = game_coords
+    def render_tile(self, tile: Tile):
+        x, y = tile.position
+        dx, dy = tile.size
         rect = pg.draw.polygon(
             surface=self.display,
-            points=self.screen_coords([(x, y), (x + 1, y), (x + 1, y + 1), (x, y + 1)]),
-            color=color,
+            points=self.screen_coords(
+                [(x, y), (x + dx, y), (x + dx, y + dy), (x, y + dy)]
+            ),
+            color=tile.color,
         )
         if self.debug:
             pg.draw.rect(self.display, rect=rect, color=self.colors["DEBUG"], width=1)
 
-    def render_tilemap(
-        self, tilemap: list[tuple[tuple, tuple, str]], grid=True, info=True, mask=False
-    ):
-        for pos, color, s in tilemap:
-            self.render_tile(pos, color)
+    def render_tilemap(self, tilemap: Tilemap, mask=False):
+        for tile in tilemap.as_list():
+            self.render_tile(tile)
 
-        if grid:
+        if tilemap.grid:
             self.draw_grid(
                 xrange=(-4, 5),
                 yrange=(-4, 5),
@@ -249,13 +253,13 @@ class Renderer:
                 labels=True,
                 color=self.colors["Grid"],
             )
-        if info:
-            for pos, color, s in tilemap:
-                self.draw_text(
-                    s,
-                    color,
-                    self.screen_coords(pos[0] + 0.3, pos[1] + 0.5),
-                )
+        # if tilemap.info_callback:
+        #     for tile in tilemap:
+        #         self.draw_text(
+        #             ,
+        #             color,
+        #             self.screen_coords(pos[0] + 0.3, pos[1] + 0.5),
+        #         )
 
 
 if __name__ == "__main__":

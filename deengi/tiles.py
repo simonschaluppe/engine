@@ -9,19 +9,19 @@ class Tile:
         color=None,
         click_callback=None,
         hover_callback=None,
-        image=None,
-        mask=None,
     ):
         self.position = game_position  # game coords, not screen coords
         self.size = size  # (width, height)
         self.color = color or (255, 255, 255)
-        self.image = image
-        self.mask = mask  #     or pygame.mask.from_surface(image)
         self.clicked = False
         self.hovered = False
 
         self.click_callback = click_callback
         self.hover_callback = hover_callback
+
+    @property
+    def rect(self):
+        return pygame.Rect(self.position, self.size)
 
     def on_click(self):
         print(f"{self} clicked!")
@@ -35,12 +35,17 @@ class Tile:
 
 
 class Tilemap:
-    def __init__(self, positions, sizes, colors):
+    def __init__(self, tile_tuples=None):
         self.tiles = []
-        for pos, size, color in zip(positions, sizes, colors):
-            self.add(Tile(pos, size, color))
+        tile_tuples = tile_tuples or []
+        for args in tile_tuples:
+            self.add(Tile(*args))
 
         self.grid = True
+
+    def __iter__(self):
+        """Make Tilemap iterable by returning an iterator over the tiles."""
+        return iter(self.tiles)
 
     def as_list(self):
         return self.tiles

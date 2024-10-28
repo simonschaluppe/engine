@@ -1,9 +1,8 @@
 import sys
-from types import DynamicClassAttribute
 import pygame as pg
-import math
 from pathlib import Path
 
+import logging
 from deengi.tiles import Tile, Tilemap
 
 from .camera import Camera2D
@@ -14,13 +13,14 @@ sys.path.append(ROOT_PATH)
 
 FONT_PATH = ROOT_PATH / "fonts"
 
-colors = {
+default_colors = {
     "Title": (100, 30, 0),
     "DEBUG": (40, 64, 123),
     "Button hovered": (61, 98, 116),
     "Button": (51, 58, 96),
     "UI Text": (76, 37, 29),
     "Dialog Background": (51, 58, 96),
+    "Grid": (200, 255, 200),
 }
 
 # Define color constants
@@ -64,7 +64,7 @@ class Renderer:
         display: pg.Surface,
         camera: Camera2D,
         scale=1.0,
-        colors=colors,
+        colors=default_colors,
         debug=True,
     ):
         self.display = display
@@ -79,6 +79,8 @@ class Renderer:
         self.font = Font(FONT_PATH / "small_font.png")
         self.titlefont = Font(FONT_PATH / "large_font.png")
 
+        self.debug_statements = []
+
     def screen_coords(self, *args):
         if type(args[0]) is tuple or type(args[0]) is pg.Vector2:
             return self.camera.screen_coords(args[0])
@@ -91,14 +93,27 @@ class Renderer:
                 "args[0] must be tuple, pg.Vector2d or list of points, or args must be list of two coordinates"
             )
 
+    def get_color(self, color):
+        """Retrieve color from self.colors or default_colors, with a final fallback."""
+        if color in self.colors:
+            return self.colors[color]
+        elif color in default_colors:
+            return default_colors[color]
+        else:
+            # Final fallback to a safe color or raise an exception
+            logging.warning(
+                f"Color '{color}' not found in both self.colors and default_colors. Using DEBUG color."
+            )
+            return default_colors["DEBUG"]  # Fallback color (black)
+
     def draw_grid(
         self,
         xrange: tuple,
         yrange: tuple,
         spacing=1,
         color="blue",
-        labels=False,
-        width=2,
+        labels=True,
+        width=1,
     ):
         # how many spacings in camera screen coordinates?
         minx, maxx = xrange
@@ -123,11 +138,15 @@ class Renderer:
                 self.draw_text(str(y), pos=self.screen_coords(minx - 0.5, y + 0.5))
 
     # debug stuff, should be low level
-    def debug(self, statements):
+    def draw_debug(self):
         # Render debug statements
-        for i, (label, callback) in enumerate(statements.items()):
-            debug_text = f"{label}: {callback()}"
-            self.draw_text(debug_text, self.colors["DEBUG"], (10, i * self.lineheight))
+        for i, callback in enumerate(self.debug_statements):
+            debug_text = f"{callback()}"
+            self.draw_text(
+                debug_text,
+                self.get_color("DEBUG"),
+                (10, i * self.lineheight),
+            )
 
     # basic rendering
     def outline(self, surf, loc, pixel, color=(10, 10, 10), onto=False):
@@ -167,7 +186,7 @@ class Renderer:
         self.outline(textsurf, (px, py), border_width, border_color, onto=onto)
         font.render(onto, text, (px, py), size, color)
         if self.debug:
-            pg.draw.rect(onto, self.colors["DEBUG"], (px, py, 3, 3))
+            pg.draw.rect(onto, self.get_color("DEBUG"), (px, py, 3, 3))
 
     def draw_text(
         self, text: str, color=ALMOSTBLACK, pos=(0, 0), lineheight=None, **kwargs
@@ -178,11 +197,17 @@ class Renderer:
             self.draw_textline(line, color, (px, py + dy), **kwargs)
             dy += lineheight if lineheight else self.lineheight
 
+    def draw_bg(self, color=None):
+        color = color or self.get_color("Background")
+        self.display.fill(color)
+
     # button
     def render_button(self, button):
         button_surf = pg.Surface(button.size)
         button_surf.fill(
-            self.colors["Button hovered"] if button.hovered else self.colors["Button"]
+            self.get_color("Button hovered")
+            if button.hovered
+            else self.get_color("Button")
         )
         # outline
         self.outline(
@@ -222,7 +247,7 @@ class Renderer:
 
     def render_dialog(self, title, text, options):
         dialog = pg.Surface(((400, 150)))
-        dialog.fill(self.colors["Dialog Background"])
+        dialog.fill(self.get_color("Dialog Background"))
         self.draw_text(title, pos=(20, 20), size=20, onto=dialog)
         self.draw_text(text, pos=(20, 45), size=20, onto=dialog)
         self.draw_text(options, pos=(20, 80), size=20, onto=dialog)
@@ -239,27 +264,13 @@ class Renderer:
             color=tile.color,
         )
         if self.debug:
-            pg.draw.rect(self.display, rect=rect, color=self.colors["DEBUG"], width=1)
+            pg.draw.rect(
+                self.display, rect=rect, color=self.get_color("DEBUG"), width=1
+            )
 
     def render_tilemap(self, tilemap: Tilemap, mask=False):
         for tile in tilemap.as_list():
             self.render_tile(tile)
-
-        if tilemap.grid:
-            self.draw_grid(
-                xrange=(-4, 5),
-                yrange=(-4, 5),
-                spacing=1,
-                labels=True,
-                color=self.colors["Grid"],
-            )
-        # if tilemap.info_callback:
-        #     for tile in tilemap:
-        #         self.draw_text(
-        #             ,
-        #             color,
-        #             self.screen_coords(pos[0] + 0.3, pos[1] + 0.5),
-        #         )
 
 
 if __name__ == "__main__":

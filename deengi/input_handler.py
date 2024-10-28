@@ -1,24 +1,9 @@
 from functools import partial
+from inflection import camelize
 import pygame as pg
 
 from deengi.ui import Option
-
-
-class Clickable:
-    mask: pg.Mask
-    rect: pg.Rect
-    callback: callable
-
-    def __init__(self, mask: pg.Mask, callback: callable):
-        self.mask = mask
-        self.rect = mask.get_rect()
-        self.callback = callback
-
-    def collides(self, other: tuple[int, int]) -> bool:
-        if self.rect.collidepoints(other):
-            return True
-            print("need to check mask!")
-        return False
+from deengi.camera import Camera2D
 
 
 class Button:
@@ -46,22 +31,27 @@ class Button:
         return self.hovered
 
 
-class InputHandler(object):
-    def __init__(self):
+class InputHandler:
+    def __init__(self, screen_coords=None, debug=True):
         self.keypress_bindings = {}
         self.keyrelease_bindings = {}
         self.continuous_keypress_bindings = {}
         self.mousebutton_bindings = {}
         self.continuous_mousebutton_bindings = {}
 
-        self.buttons = []
+        self.clickable_rects = {}
+        self.hoverable_rects = {}
 
-        # needs to keep track of a list of clickables
-        # the clickables should be twostaged:
-        # first check for "Rect" collisiions
-        # if yes, then check for mask collision
-        # the callback works like buttons?
-        #
+        self.buttons = []
+        self.screen_coords = screen_coords or (lambda x: x)
+
+        self.debug = debug
+
+    def register_clickable(self, clickable, callback):
+        self.clickable_rects[clickable] = callback
+
+    def register_hover(self, hoverable, callback):
+        self.hoverable_rects[hoverable] = callback
 
     def register_button(self, button):
         """Register a button to be checked for clicks."""
@@ -128,16 +118,33 @@ class InputHandler(object):
 
     def handle_mouse_movement(self):
         mousepos = pg.mouse.get_pos()
+
         for button in self.buttons:
             button.is_hovering(mousepos)
 
+        for hoverable, callback in self.hoverable_rects.items():
+            rect = self.screen_coords(hoverable.rect)
+            if rect.collidepoint(mousepos):
+                callback()  # Trigger the callback if mouse is over rect
+                break
+
     def handle_mouse_down(self, event):
-        print(event.button)
+        if self.debug:
+            print(event.button, pg.mouse.get_pos())
         if event.button in self.mousebutton_bindings:
             self.mousebutton_bindings[event.button]()
         for button in self.buttons:
             if button.is_hovering(pg.mouse.get_pos()):
                 button.press()
+                break
+
+        for clickable, callback in self.clickable_rects.items():
+            rect = self.screen_coords(clickable.rect)
+            if self.debug:
+                print(rect)
+            if rect.collidepoint(pg.mouse.get_pos()):
+                callback()  # Trigger the callback if click is within rect
+                break
 
     def handle_mouse_up(self, event):
         if event.button != 1:

@@ -6,6 +6,7 @@ deengi/engine.py
 deengi/font.py
 deengi/input_handler.py
 deengi/renderer.py
+deengi/tiles.py
 deengi.egg-info/PKG-INFO
 deengi.egg-info/SOURCES.txt
 deengi.egg-info/dependency_links.txt

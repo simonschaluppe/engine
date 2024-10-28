@@ -8,15 +8,16 @@ from .ui import Scene, Option
 
 
 class Engine:
-    def __init__(self, title="Engine"):
-
+    def __init__(self, title="Engine", debug=True):
+        self.debug = debug
         pygame.init()
         self.screen = pygame.display.set_mode((800, 600))
         pygame.display.set_caption(title)
-        display = pygame.Surface((800, 600))
-        camera = Camera2D(display, zoom=(1, 1))
-        self.renderer = Renderer(display, camera=camera)
-        self.input_handler = InputHandler()
+        self.camera = Camera2D(self.screen, zoom=(1, 1), debug=self.debug)
+        self.renderer = Renderer(self.screen, camera=self.camera, debug=self.debug)
+        self.input_handler = InputHandler(
+            screen_coords=self.camera.screen_coords, debug=self.debug
+        )
 
         self.render_stack = []
 
@@ -50,9 +51,27 @@ class Engine:
             for render_callback, data_dict in self.render_stack:
                 render_callback(**data_dict)
 
+            if self.debug:
+                self.renderer.draw_debug()
             # render calls
             self.screen.blit(self.renderer.display, (0, 0))
             pygame.display.update()
+
+    def set_rendering_callback(self, render_callback, data=None):
+        self.render_stack = [(render_callback, data)]
+
+    def add_rendering_callback(self, render_callback, data=None):
+        self.render_stack.append((render_callback, data))
+
+    def add_rendering_callbacks(self, *tuples):
+        for callback, data in tuples:
+            self.add_rendering_callback(self, callback, data)
+
+    def show_debug(self, callback):
+        self.renderer.debug_statements.append(callback)
+
+    def create_tilemap(self, positions: list, sizes: list, colors: list):
+        self.tilemap = Tilemap(zip(positions, sizes, colors))
 
     def show_scene(self, scene: Scene):
 
@@ -81,19 +100,21 @@ class Engine:
             )
         )
 
-    def set_rendering_callback(self, render_callback, data=None):
-        self.render_stack = [(render_callback, data)]
-
-    def add_rendering_callbacks(self, *tuples):
-        for t in tuples:
-            self.render_stack.append(t)
-
-    def create_tilemap(self, positions: list, sizes: list, colors: list):
-        self.tilemap = Tilemap(positions, sizes, colors)
-
     def show_tilemap(self):
-        self.set_rendering_callback(
+        self.add_rendering_callback(
             self.renderer.render_tilemap, {"tilemap": self.tilemap}
+        )
+
+    def show_grid(self, **options):
+        self.add_rendering_callback(
+            self.renderer.draw_grid,
+            options,
+        )
+
+    def show_background(self, **options):
+        self.add_rendering_callback(
+            self.renderer.draw_bg,
+            options,
         )
 
     def quit(self):

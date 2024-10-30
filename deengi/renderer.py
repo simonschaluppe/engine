@@ -3,7 +3,6 @@ import pygame as pg
 from pathlib import Path
 
 import logging
-from deengi.tiles import Tile, Tilemap
 
 from .camera import Camera2D
 from .font import Font
@@ -106,37 +105,6 @@ class Renderer:
             )
             return default_colors["DEBUG"]  # Fallback color (black)
 
-    def draw_grid(
-        self,
-        xrange: tuple,
-        yrange: tuple,
-        spacing=1,
-        color="blue",
-        labels=True,
-        width=1,
-    ):
-        # how many spacings in camera screen coordinates?
-        minx, maxx = xrange
-        miny, maxy = yrange
-        for x in range(minx, maxx + 1, spacing):
-            pg.draw.line(
-                self.display,
-                color,
-                *self.screen_coords([(x, miny), (x, maxy)]),
-                width=width,
-            )
-            if labels and x < maxx:  # x axis
-                self.draw_text(str(x), pos=self.screen_coords(x + 0.5, miny - 0.5))
-        for y in range(miny, maxy + 1, spacing):
-            pg.draw.line(
-                self.display,
-                color,
-                *self.screen_coords([(minx, y), (maxx, y)]),
-                width=width,
-            )
-            if labels and y < maxy:
-                self.draw_text(str(y), pos=self.screen_coords(minx - 0.5, y + 0.5))
-
     # debug stuff, should be low level
     def draw_debug(self):
         # Render debug statements
@@ -198,7 +166,7 @@ class Renderer:
             dy += lineheight if lineheight else self.lineheight
 
     def draw_bg(self, color=None):
-        color = color or self.get_color("Background")
+        color = color or self.get_color("background")
         self.display.fill(color)
 
     # button
@@ -239,38 +207,24 @@ class Renderer:
                 special_flags=pg.BLEND_RGB_ADD,
             )
 
-    def render_text_scene(self, title, text, options):
-        # self.display.fill((10, 20, 60))
-        self.draw_text(title, pos=(50, 50), size=30)
-        self.draw_text(text, pos=(50, 100), size=20)
-        self.draw_text(options, pos=(50, 400), size=20)
 
-    def render_dialog(self, title, text, options):
-        dialog = pg.Surface(((400, 150)))
-        dialog.fill(self.get_color("Dialog Background"))
-        self.draw_text(title, pos=(20, 20), size=20, onto=dialog)
-        self.draw_text(text, pos=(20, 45), size=20, onto=dialog)
-        self.draw_text(options, pos=(20, 80), size=20, onto=dialog)
-        self.display.blit(dialog, (200, 200))
+class Layer:
+    def __init__(self):
+        self.content = []
+        self.visible = True
 
-    def render_tile(self, tile: Tile):
-        x, y = tile.position
-        dx, dy = tile.size
-        rect = pg.draw.polygon(
-            surface=self.display,
-            points=self.screen_coords(
-                [(x, y), (x + dx, y), (x + dx, y + dy), (x, y + dy)]
-            ),
-            color=tile.color,
-        )
-        if self.debug:
-            pg.draw.rect(
-                self.display, rect=rect, color=self.get_color("DEBUG"), width=1
-            )
+    def show(self):
+        self.visible = True
 
-    def render_tilemap(self, tilemap: Tilemap, mask=False):
-        for tile in tilemap.as_list():
-            self.render_tile(tile)
+    def hide(self):
+        self.visible = False
+
+    def toggle_visibility(self):
+        self.visible = not self.visible
+
+    def render(self, renderer):
+        for renderable in self.content:
+            renderable.render(renderer)
 
 
 if __name__ == "__main__":

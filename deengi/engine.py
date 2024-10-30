@@ -1,10 +1,12 @@
+from functools import partial
 import pygame
+
 
 from .camera import Camera2D
 from .input_handler import InputHandler
 from .renderer import Renderer
-from .tiles import Tilemap
-from .ui import Scene, Option
+
+from .renderables.ui import Tooltip
 
 
 class Engine:
@@ -19,7 +21,18 @@ class Engine:
             screen_coords=self.camera.screen_coords, debug=self.debug
         )
 
-        self.render_stack = []
+        self.layers = {
+            "background": [],
+            "main": [],
+            "ui": [],
+            "overlay": [],
+        }
+        self.layer_visibility = {
+            "background": True,
+            "main": True,
+            "ui": True,
+            "overlay": True,  # Tooltips or dialogs can default to hidden
+        }
 
     def setup_camera(
         self,
@@ -46,76 +59,46 @@ class Engine:
         while True:
             # handle events
             self.input_handler.update()
+            for layer_name in ["background", "main", "ui", "overlay"]:
+                if not self.layer_visibility[layer_name]:
+                    continue
+                for render_callback, data_dict in self.layers[layer_name]:
+                    render_callback(**data_dict)
 
-            self.renderer.display.fill((0, 0, 0))
-            for render_callback, data_dict in self.render_stack:
-                render_callback(**data_dict)
-
-            if self.debug:
+            if self.debug:  # putnthis in overlay
                 self.renderer.draw_debug()
             # render calls
             self.screen.blit(self.renderer.display, (0, 0))
             pygame.display.update()
 
-    def set_rendering_callback(self, render_callback, data=None):
-        self.render_stack = [(render_callback, data)]
+    def clear_layer(self, layer):
+        self.layers[layer] = []
 
-    def add_rendering_callback(self, render_callback, data=None):
-        self.render_stack.append((render_callback, data))
+    def add_to_layer(self, layer, renderable):
+        self.layers[layer].append((renderable.render, dict(renderer=self.renderer)))
 
-    def add_rendering_callbacks(self, *tuples):
-        for callback, data in tuples:
-            self.add_rendering_callback(self, callback, data)
+    def add_tooltip(self, renderable, tooltip_message, color=None):
+        tooltip = Tooltip(tooltip_message, color=color)
+        self.add_to_layer("overlay", tooltip)
+        self.input_handler.register_hover(renderable, tooltip.set_hover)
 
     def show_debug(self, callback):
         self.renderer.debug_statements.append(callback)
 
-    def create_tilemap(self, positions: list, sizes: list, colors: list):
-        self.tilemap = Tilemap(zip(positions, sizes, colors))
-
-    def show_scene(self, scene: Scene):
-
+    def show_scene(self, scene):
+        self.clear_layer("ui")
         self.input_handler.reset()  # is this appropiate?
         self.input_handler.bind_options_to_keys(scene.options)
-        render_callback = self.renderer.render_text_scene
-        data = dict(
-            title=scene.title,
-            text=scene.text,
-            options=scene.get_options_text(),
-        )
-        self.render_stack.pop()
-        self.add_rendering_callbacks((render_callback, data))
+        self.layers["ui"] = []
+        self.add_to_layer("ui", scene)
 
     def show_dialog(self, scene):
         self.input_handler.reset()  # is this appropiate?
         self.input_handler.bind_options_to_keys(scene.options)
-        self.add_rendering_callbacks(
-            (
-                self.renderer.render_dialog,
-                dict(
-                    title=scene.title,
-                    text=scene.text,
-                    options=scene.get_options_text(),
-                ),
-            )
-        )
+        self.add_to_layer("ui", scene)
 
-    def show_tilemap(self):
-        self.add_rendering_callback(
-            self.renderer.render_tilemap, {"tilemap": self.tilemap}
-        )
-
-    def show_grid(self, **options):
-        self.add_rendering_callback(
-            self.renderer.draw_grid,
-            options,
-        )
-
-    def show_background(self, **options):
-        self.add_rendering_callback(
-            self.renderer.draw_bg,
-            options,
-        )
+    def show_background(self, color):
+        self.layers["background"].append((self.renderer.draw_bg, dict(color=color)))
 
     def quit(self):
         pygame.quit()

@@ -23,7 +23,7 @@ class Camera2D(Camera):
         zoom: tuple = (1, 1),
         rotation: int = 0,
         flatness=1,
-        debug=True,
+        debug=False,
     ):
         self.screen = surface or pg.display.get_surface()
         self.screen_width, self.screen_height = self.screen.get_size()

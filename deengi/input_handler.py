@@ -1,9 +1,7 @@
 from functools import partial
-from inflection import camelize
 import pygame as pg
 
-from deengi.ui import Option
-from deengi.camera import Camera2D
+from .renderables.dialog import Option
 
 
 class Button:
@@ -124,9 +122,8 @@ class InputHandler:
 
         for hoverable, callback in self.hoverable_rects.items():
             rect = self.screen_coords(hoverable.rect)
-            if rect.collidepoint(mousepos):
-                callback()  # Trigger the callback if mouse is over rect
-                break
+            collision = rect.collidepoint(mousepos)
+            callback(collision)
 
     def handle_mouse_down(self, event):
         if self.debug:

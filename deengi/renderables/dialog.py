@@ -1,5 +1,7 @@
 import pygame
 
+from deengi.renderables.renderable import Renderable
+
 
 class Option:
     text: str
@@ -13,7 +15,7 @@ class Option:
         return self.text
 
 
-class Dialog:
+class Dialog(Renderable):
     options: list[Option]
     title: str = "Title"
     text: str = "filler text"

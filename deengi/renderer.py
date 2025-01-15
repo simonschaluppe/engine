@@ -80,17 +80,8 @@ class Renderer:
 
         self.debug_statements = []
 
-    def screen_coords(self, *args):
-        if type(args[0]) is tuple or type(args[0]) is pg.Vector2:
-            return self.camera.screen_coords(args[0])
-        elif len(args) == 2:
-            return self.camera.screen_coords((args[0], args[1]))
-        elif type(args[0]) is list:
-            return self.camera.screen_coords(args[0])
-        else:
-            raise ValueError(
-                "args[0] must be tuple, pg.Vector2d or list of points, or args must be list of two coordinates"
-            )
+    def screen_coords(self, coords):
+        return self.camera.screen_coords(coords)
 
     def get_color(self, color):
         """Retrieve color from self.colors or default_colors, with a final fallback."""
@@ -159,6 +150,9 @@ class Renderer:
     def draw_text(
         self, text: str, color=ALMOSTBLACK, pos=(0, 0), lineheight=None, **kwargs
     ):
+        """color: textcolor,
+        border_color = WHITE
+        size = 20"""
         px, py = pos
         dy = 0
         for line in text.splitlines():

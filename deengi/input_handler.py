@@ -121,25 +121,24 @@ class InputHandler:
             button.is_hovering(mousepos)
 
         for hoverable, callback in self.hoverable_rects.items():
-            rect = self.screen_coords(hoverable.rect)
-            collision = rect.collidepoint(mousepos)
+            collision = hoverable.collidepoint(mousepos)
             callback(collision)
 
     def handle_mouse_down(self, event):
         if self.debug:
             print(event.button, pg.mouse.get_pos())
+
         if event.button in self.mousebutton_bindings:
             self.mousebutton_bindings[event.button]()
+
         for button in self.buttons:
             if button.is_hovering(pg.mouse.get_pos()):
                 button.press()
                 break
 
         for clickable, callback in self.clickable_rects.items():
-            rect = self.screen_coords(clickable.rect)
-            if self.debug:
-                print(rect)
-            if rect.collidepoint(pg.mouse.get_pos()):
+            if clickable.collidepoint(pg.mouse.get_pos()):
+                print("clicked", clickable)
                 callback()  # Trigger the callback if click is within rect
                 break
 

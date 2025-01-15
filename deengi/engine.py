@@ -1,6 +1,9 @@
 from functools import partial
 import pygame
 
+from deengi import renderables
+from deengi.renderables.renderable import Renderable
+
 
 from .camera import Camera2D
 from .input_handler import InputHandler
@@ -10,17 +13,9 @@ from .renderables.ui import Tooltip
 
 
 class Engine:
-    def __init__(self, title="Engine", debug=True):
-        self.debug = debug
+    def __init__(self, title="Engine", debug=True, screen_size=(800, 600)):
+        self.debugmode = debug
         pygame.init()
-        self.screen = pygame.display.set_mode((800, 600))
-        pygame.display.set_caption(title)
-        self.camera = Camera2D(self.screen, zoom=(1, 1), debug=self.debug)
-        self.renderer = Renderer(self.screen, camera=self.camera, debug=self.debug)
-        self.input_handler = InputHandler(
-            screen_coords=self.camera.screen_coords, debug=self.debug
-        )
-
         self.layers = {
             "background": [],
             "main": [],
@@ -33,19 +28,43 @@ class Engine:
             "ui": True,
             "overlay": True,  # Tooltips or dialogs can default to hidden
         }
-
+        self.clock = pygame.time.Clock()
+        self.screen = pygame.display.set_mode(screen_size)
+        pygame.display.set_caption(title)
+        
+        self.camera = Camera2D(self.screen, zoom=(1, 1), debug=self.debugmode)
+        pygame.screen_coords = self.camera.screen_coords
+        
+        self.renderer = Renderer(self.screen, camera=self.camera, debug=self.debugmode)
+        
+        self.input_handler = InputHandler(
+            screen_coords=self.camera.screen_coords, debug=self.debugmode
+        )
+        self.setup_camera()
+        self.show_background()
+        
+        self.paused = False
+        self.bind_key("q", self.quit)
+        self.bind_key("d", self.toggle_debug)
+        self.bind_key("p", self.toggle_pause)
+        
+    
+        self.update_callbacks = []
+        
     def setup_camera(
         self,
         rotation=0,
-        isometry=0.3,
-        zoom=30,
+        isometry=1,
+        zoom=100,
         mousewheelzoom=True,
         mousedrag_pan=True,
         arrow_rotate=True,
+        pos=(0, 0),
     ):
-        self.renderer.camera.set_rotation(rotation)
-        self.renderer.camera.set_isometry(isometry)
-        self.renderer.camera.zoom(zoom)
+        self.camera.set_game_position(pos)
+        self.camera.set_rotation(rotation)
+        self.camera.set_isometry(isometry)
+        self.camera.zoom(zoom)
         if mousewheelzoom:
             self.input_handler.bind_camera_zoom_to_mousewheel(self.renderer.camera)
         if mousedrag_pan:
@@ -55,17 +74,29 @@ class Engine:
         if arrow_rotate:
             self.input_handler.bind_camera_rotate_to_arrow_keys(self.renderer.camera)
 
+    def update(self):
+        for cb in self.update_callbacks:
+            cb()
+
     def run(self):
         while True:
             # handle events
+            self.clock.tick(60)
+            if not self.paused:
+                self.update()
             self.input_handler.update()
             for layer_name in ["background", "main", "ui", "overlay"]:
                 if not self.layer_visibility[layer_name]:
                     continue
-                for render_callback, data_dict in self.layers[layer_name]:
-                    render_callback(**data_dict)
+                for renderable in self.layers[layer_name]:
+                    if isinstance(renderable, Renderable) and renderable.visible:
+                        renderable.render(self.renderer)
+                    elif isinstance(renderable, tuple):
+                        callback, data_dict = renderable
+                        callback(**data_dict)
 
-            if self.debug:  # putnthis in overlay
+                
+            if self.debugmode:  # putnthis in overlay
                 self.renderer.draw_debug()
             # render calls
             self.screen.blit(self.renderer.display, (0, 0))
@@ -74,8 +105,10 @@ class Engine:
     def clear_layer(self, layer):
         self.layers[layer] = []
 
-    def add_to_layer(self, layer, renderable):
-        self.layers[layer].append((renderable.render, dict(renderer=self.renderer)))
+    def add_to_layer(self, layer="main", *renderables):
+        if layer not in self.layers: raise KeyError(f"Layer {layer} not found in engine Layers: {list(self.layers.keys())}")
+        for renderable in renderables:
+            self.layers[layer].append(renderable)
 
     def add_tooltip(self, renderable, tooltip_message, color=None):
         tooltip = Tooltip(tooltip_message, color=color)
@@ -97,8 +130,48 @@ class Engine:
         self.input_handler.bind_options_to_keys(scene.options)
         self.add_to_layer("ui", scene)
 
-    def show_background(self, color):
+    def show_background(self, color=(0,0,0)):
+        self.clear_layer("background")
         self.layers["background"].append((self.renderer.draw_bg, dict(color=color)))
+
+    def show_grid(self, lines:int|tuple[int,int]=20, start:tuple[int,int]=None, **kwargs):
+        if isinstance(lines, int):
+            xlines = ylines = lines
+        elif isinstance(lines, tuple):
+            xlines, ylines = lines
+        else: raise ValueError(f"Argument lines must be int or tuple of ints")
+        if not start:
+            startx = -xlines // 2
+            starty = -ylines // 2
+        elif isinstance(start, tuple):
+            startx, starty = start
+        else: raise ValueError(f"Argument start must be tuple of ints")
+              
+        grid = renderables.Grid((startx, startx+xlines), (starty, starty+ylines), **kwargs)
+        self.add_to_layer(
+            "background",
+            grid,
+        )
+        return grid
+
+    def toggle_debug(self):
+        self.debugmode = not self.debugmode
+        self.renderer.debug = self.debugmode
+        self.input_handler.debug = self.debugmode
+        self.camera.debug = self.debugmode
+
+    def toggle_visibility_cb(self, *renderables: Renderable):
+        def callback():
+            for renderable in renderables:
+                renderable.toggle_visibility()
+
+        return callback
+
+    def toggle_pause(self):
+        self.paused = not self.paused
+
+    def bind_key(self, key, callback):
+        self.input_handler.bind_keypress(ord(key.lower()), callback)
 
     def quit(self):
         pygame.quit()

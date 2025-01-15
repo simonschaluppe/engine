@@ -58,6 +58,8 @@ class Camera2D(Camera):
         self.position = pg.Vector2(*pos)
 
     def set_isometry(self, flatness):
+        """1 = No Isometry
+        0 = Infinitely flat (capped to 0.05)"""
         self.flatness = max(0.05, min(flatness, 1))
         self.ex, self.ey = self.get_transformation_matrix(self.rotation, self.flatness)
 
@@ -241,8 +243,14 @@ class Camera2D(Camera):
             return pg.Vector2(x_game, y_game) + self.position
 
     def zoom(self, factor):
+        """single factor or tuple (x,y) factor"""
+        if isinstance(factor, int) or isinstance(factor, float):
+            factorx = factory = factor
+        elif len(factor)==2:
+            factorx, factory = factor
+        else: raise ValueError
         x, y = self.zoom_level
-        self.zoom_level = (x * factor, y * factor)
+        self.zoom_level = (x * factorx, y * factory)
 
     def move(self, xy_tuple):
         # should be in screen coordinates, not in game coordinates

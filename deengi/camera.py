@@ -1,6 +1,9 @@
 import math
 from typing import Protocol
 import pygame as pg
+import logging
+
+logging.basicConfig(level=logging.WARNING)
 
 
 class Camera(Protocol):
@@ -49,7 +52,7 @@ class Camera2D(Camera):
     def move_to(self):
         direction = pg.mouse.get_pos() - self.drag_startpoint
         if self.debug:
-            print(
+            logging.debug(
                 f"Dragging camera from {self.drag_startpoint} to current {pg.mouse.get_pos()} by {direction}"
             )
         self.proj_center = self.proj_startpoint + direction
@@ -246,9 +249,10 @@ class Camera2D(Camera):
         """single factor or tuple (x,y) factor"""
         if isinstance(factor, int) or isinstance(factor, float):
             factorx = factory = factor
-        elif len(factor)==2:
+        elif len(factor) == 2:
             factorx, factory = factor
-        else: raise ValueError
+        else:
+            raise ValueError
         x, y = self.zoom_level
         self.zoom_level = (x * factorx, y * factory)
 
@@ -260,7 +264,7 @@ class Camera2D(Camera):
         self.zoom_level = (1, 1)
         self.position = pg.Vector2(0, 0)
         if self.follows is not None:
-            print("resetting camera to follow")
+            logging.debug("resetting camera to follow")
             self.position.xy = self.follows.position.xy
 
     def __repr__(self) -> str:

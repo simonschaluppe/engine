@@ -36,7 +36,16 @@ class InputHandler:
         self.continuous_keypress_bindings = {}
         self.mousebutton_bindings = {}
         self.continuous_mousebutton_bindings = {}
-
+        
+        self.all_binding_dicts = {
+            "on keypress": self.keypress_bindings, 
+            "on keyrelease": self.keyrelease_bindings, 
+            "key hold": self.continuous_keypress_bindings, 
+            "mouse press": self.mousebutton_bindings, 
+            "mouse hold": self.continuous_mousebutton_bindings
+        }
+        self.bindings = []
+            
         self.clickable_rects = {}
         self.hoverable_rects = {}
 
@@ -44,6 +53,11 @@ class InputHandler:
         self.screen_coords = screen_coords or (lambda x: x)
 
         self.debug = debug
+        
+        
+
+    def get_keybinds(self):
+        return sorted(set(self.bindings))
 
     def register_clickable(self, clickable, callback):
         self.clickable_rects[clickable] = callback
@@ -55,48 +69,58 @@ class InputHandler:
         """Register a button to be checked for clicks."""
         self.buttons.append(button)
 
-    def bind_keypress(self, key, action):
+    def bind_keypress(self, key, action, binding_name=None):
+        name = binding_name or repr(action)
+        self.bindings.append((pg.key.name(key), "key press", name))
         self.keypress_bindings[key] = action
 
-    def bind_keyrelease(self, key, action):
+    def bind_keyrelease(self, key, action, binding_name=None):
+        name = binding_name or repr(action)
+        self.bindings.append((pg.key.name(key), "key release", name))
         self.keyrelease_bindings[key] = action
 
-    def bind_continuous_keypress(self, key, action):
+    def bind_continuous_keypress(self, key, action, binding_name=None):
+        name = binding_name or repr(action)
+        self.bindings.append((pg.key.name(key), "continuous key hold", name))
         self.continuous_keypress_bindings[key] = action
 
-    def bind_mousebutton_down(self, button, action):
-        """left mousebutton is button 1"""
+    def bind_mousebutton_down(self, button, action, binding_name=None):
+        """left mousebutton is button 0"""
+        name = binding_name or repr(action)
+        self.bindings.append((str(button),"Mousebutton click", name))
         self.mousebutton_bindings[button] = action
 
-    def bind_continuous_mousebutton(self, button, action):
+    def bind_continuous_mousebutton(self, button, action, binding_name=None):
         """left mousebutton is button 0"""
+        name = binding_name or repr(action)
+        self.bindings.append((str(button+1),"Mousebutton hold", name))
         self.continuous_mousebutton_bindings[button] = action
 
     def bind_WASD_movement(self, mover, speed: float, turnspeed: float):
-        self.bind_continuous_keypress(pg.K_w, lambda: mover.move_in_direction(speed))
-        self.bind_continuous_keypress(pg.K_s, lambda: mover.move_in_direction(-speed))
-        self.bind_continuous_keypress(pg.K_a, lambda: mover.turn(angle=turnspeed))
-        self.bind_continuous_keypress(pg.K_d, lambda: mover.turn(angle=-turnspeed))
+        self.bind_continuous_keypress(pg.K_w, lambda: mover.move_in_direction(speed), "Move up")
+        self.bind_continuous_keypress(pg.K_s, lambda: mover.move_in_direction(-speed), "Move down")
+        self.bind_continuous_keypress(pg.K_a, lambda: mover.turn(angle=turnspeed), "Turn left")
+        self.bind_continuous_keypress(pg.K_d, lambda: mover.turn(angle=-turnspeed), "Turn right")
 
     def bind_camera_zoom_to_mousewheel(self, camera, change=0.1):
-        self.bind_mousebutton_down(4, lambda: camera.zoom(1 + change))
-        self.bind_mousebutton_down(5, lambda: camera.zoom(1 - change))
+        self.bind_mousebutton_down(4, lambda: camera.zoom(1 + change), "Camera Zoom in")
+        self.bind_mousebutton_down(5, lambda: camera.zoom(1 - change), "Camera Zoom out")
 
     def bind_camera_pan_to_arrows_keys(self, camera, speed=1):
-        self.bind_continuous_keypress(pg.K_UP, lambda: camera.move((0, speed)))
-        self.bind_continuous_keypress(pg.K_DOWN, lambda: camera.move((0, -speed)))
-        self.bind_continuous_keypress(pg.K_LEFT, lambda: camera.move((-speed, 0)))
-        self.bind_continuous_keypress(pg.K_RIGHT, lambda: camera.move((speed, 0)))
+        self.bind_continuous_keypress(pg.K_UP, lambda: camera.move((0, speed)), "Camera Pan up")
+        self.bind_continuous_keypress(pg.K_DOWN, lambda: camera.move((0, -speed)), "Camera Pan down")
+        self.bind_continuous_keypress(pg.K_LEFT, lambda: camera.move((-speed, 0)), "Camera Pan left")
+        self.bind_continuous_keypress(pg.K_RIGHT, lambda: camera.move((speed, 0)), "Camera Pan right")
 
     def bind_camera_rotate_to_arrow_keys(self, camera, speed=0.5):
-        self.bind_continuous_keypress(pg.K_UP, partial(camera.tilt, speed / 360))
-        self.bind_continuous_keypress(pg.K_DOWN, partial(camera.tilt, -speed / 360))
-        self.bind_continuous_keypress(pg.K_LEFT, partial(camera.rotate, speed))
-        self.bind_continuous_keypress(pg.K_RIGHT, partial(camera.rotate, -speed))
+        self.bind_continuous_keypress(pg.K_UP, partial(camera.tilt, speed / 360), "Camera tilt up")
+        self.bind_continuous_keypress(pg.K_DOWN, partial(camera.tilt, -speed / 360), "Camera tilt down")
+        self.bind_continuous_keypress(pg.K_LEFT, partial(camera.rotate, speed), "Camera rotate counter-clockwise")
+        self.bind_continuous_keypress(pg.K_RIGHT, partial(camera.rotate, -speed), "Camera rotate clockwise")
 
     def bind_camera_pan_to_mousedrag(self, camera, button=1):
-        self.bind_mousebutton_down(button, camera.drag_start)
-        self.bind_continuous_mousebutton(button - 1, camera.move_to)  # continous
+        self.bind_mousebutton_down(button, camera.drag_start,)
+        self.bind_continuous_mousebutton(button - 1, camera.move_to, "Camera drag")  # continous
 
     def bind_options_to_keys(self, options: list[Option]):
         used_keys = []

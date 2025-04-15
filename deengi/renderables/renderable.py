@@ -1,5 +1,6 @@
 import pygame
 
+
 class Renderable:
     default_coord_transform = None
     visible = True
@@ -9,7 +10,7 @@ class Renderable:
 
     def toggle_visibility(self):
         self.visible = not self.visible
-        if hasattr(self, 'members'):
+        if hasattr(self, "members"):
             for member in self.members:
                 member.toggle_visibility()
 
@@ -19,17 +20,16 @@ class Renderable:
 
 class RenderGroup(Renderable):
     name: str
-    members = []
 
     def __init__(self, name):
         self.name = name
+        self.members = []
 
     def __iter__(self):
         return iter(self.members)
 
     def add(self, *renderables):
-        for renderable in renderables:
-            self.members.append(renderable)
+        self.members.extend(renderables)
 
     def render(self, renderer):
         for member in self.members:

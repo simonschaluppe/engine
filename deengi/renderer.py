@@ -99,8 +99,8 @@ class Renderer:
     # debug stuff, should be low level
     def draw_debug(self):
         # Render debug statements
-        for i, callback in enumerate(self.debug_statements):
-            debug_text = f"{callback()}"
+        for i, statement in enumerate(self.debug_statements):
+            debug_text = f"{statement()}" if callable(statement) else statement
             self.draw_text(
                 debug_text,
                 self.get_color("DEBUG"),

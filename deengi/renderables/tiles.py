@@ -4,6 +4,18 @@ import pygame
 from deengi.renderables.renderable import RenderGroup, Renderable
 
 
+MAX_WIDTH, MAX_HEIGHT = 1000, 1000
+
+
+def scale_preserve_transparency(source, size):
+    scaled = pygame.transform.scale(source, size)
+    colorkey = source.get_colorkey()
+    if colorkey is not None:
+        scaled.set_colorkey(colorkey)
+        return scaled.convert()
+    return scaled.convert_alpha()
+
+
 class Tile(Renderable):
     id = 0
 
@@ -17,6 +29,7 @@ class Tile(Renderable):
         hover_callback=None,
         use_mask=False,
         name=None,
+        colorkey=None,
     ):
         self.id = Tile.id
         Tile.id += 1
@@ -26,10 +39,24 @@ class Tile(Renderable):
         self.size = size  # (width, height)
         self.screen_size = None
         if img:
-            self.img = pygame.image.load(img).convert_alpha()
-            self.img.set_colorkey((255, 0, 255))
+            if colorkey is not None and (
+                not isinstance(colorkey, tuple) or len(colorkey) != 3
+            ):
+                raise ValueError("colorkey must be a tuple of 3 RGB values")
+            surface = pygame.image.load(img)
+            if colorkey is not None:
+                print(f"Applying colorkey: {colorkey}")
+                pixel = surface.get_at((0, 0))
+                print(f"Top-left pixel color: {pixel}")
+                surface = surface.convert()
+                surface.set_colorkey(colorkey)
+            else:
+                surface = surface.convert_alpha()
+            self.img = surface
+            # print(f"{img} loaded")
         else:
             self.img = None
+
         self.color = color or (255, 255, 255)
         self.clicked = False
         self.hovered = False
@@ -111,8 +138,18 @@ class Tile(Renderable):
         # Scale the image
         scaled_width = int(img_width * scale_factor)
         scaled_height = int(img_height * scale_factor)
-        scaled_img = pygame.transform.scale(self.img, (scaled_width, scaled_height))
 
+        if scaled_width > MAX_WIDTH or scaled_height > MAX_HEIGHT:
+            print(
+                f"Original size: {self.img.get_size()}, Target size: ({scaled_width}, {scaled_height})"
+            )
+
+        scaled_width = min(scaled_width, MAX_WIDTH)
+        scaled_height = min(scaled_height, MAX_HEIGHT)
+
+        scaled_img = scale_preserve_transparency(
+            self.img, (scaled_width, scaled_height)
+        )
         # Calculate the center position and adjust for the new size
         center_pos = (self.pos[0] + 0.5, self.pos[1] + 0.5)
         screen_center = renderer.screen_coords(center_pos)
@@ -153,8 +190,9 @@ class Tile(Renderable):
 
 
 class Tilemap(RenderGroup):
-    def __init__(self, tile_tuples=None):
+    def __init__(self, tile_tuples=None, name="tilemap"):
         """Iterable Tilemap of Tiles"""
+        super().__init__(name)
         tile_tuples = tile_tuples or []
         for args in tile_tuples:
             self.add(Tile(*args))
@@ -183,6 +221,8 @@ class Grid(Renderable):
             self.dx = self.dy = spacing
         if isinstance(color, str):
             self.colorx = self.colory = color
+        elif len(color) == 2:
+            self.colorx, self.colory = color
         else:
             self.colorx, self.colory = color, color
 

@@ -60,7 +60,10 @@ class Tile(Renderable):
         self.color = color or (255, 255, 255)
         self.clicked = False
         self.hovered = False
+        self.highlighted = True
 
+        self._dimmed_img = None
+        
         self.click_callback = click_callback
         self.hover_callback = hover_callback
 
@@ -101,6 +104,23 @@ class Tile(Renderable):
             points=self.points(renderer),
             color=self.color,
         )
+
+    def get_dimmed_image(self):
+        if hasattr(self, "_dimmed_img") and self._dimmed_img:
+            return self._dimmed_img
+
+        gray_img = self.img.copy()
+        arr = pygame.surfarray.pixels3d(gray_img)
+        alpha = pygame.surfarray.pixels_alpha(gray_img)
+        gray = (0.3 * arr[:, :, 0] + 0.59 * arr[:, :, 1] + 0.11 * arr[:, :, 2]).astype('uint8')
+
+        arr[:, :, 0] = gray
+        arr[:, :, 1] = gray
+        arr[:, :, 2] = gray
+        pygame.surfarray.pixels_alpha(gray_img)[:, :] = alpha
+
+        self._dimmed_img = gray_img
+        return gray_img
 
     def render_img(self, renderer):
         # easier, works, but tile images that are larger than the tile will get squished
@@ -147,9 +167,8 @@ class Tile(Renderable):
         scaled_width = min(scaled_width, MAX_WIDTH)
         scaled_height = min(scaled_height, MAX_HEIGHT)
 
-        scaled_img = scale_preserve_transparency(
-            self.img, (scaled_width, scaled_height)
-        )
+        img_to_render = self.img if self.highlighted else self.get_dimmed_image()
+        scaled_img = scale_preserve_transparency(img_to_render, (scaled_width, scaled_height))
         # Calculate the center position and adjust for the new size
         center_pos = (self.pos[0] + 0.5, self.pos[1] + 0.5)
         screen_center = renderer.screen_coords(center_pos)
@@ -174,7 +193,7 @@ class Tile(Renderable):
 
         else:
             self.render_area(renderer)
-
+            
         if renderer.debug:
             pygame.draw.rect(
                 renderer.display,

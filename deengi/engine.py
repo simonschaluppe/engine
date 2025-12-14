@@ -5,11 +5,11 @@ from deengi import renderables
 from deengi.renderables.renderable import Renderable
 
 
-from .camera import Camera2D
-from .input_handler import InputHandler
-from .renderer import Renderer
+from deengi.camera import Camera2D
+from deengi.input_handler import InputHandler
+from deengi.renderer import Renderer
 
-from .renderables.ui import Tooltip
+from deengi.renderables.ui import Tooltip
 
 
 class Engine:
@@ -76,8 +76,8 @@ class Engine:
             self.input_handler.bind_camera_rotate_to_arrow_keys(self.renderer.camera)
 
     def update(self):
-        for cb in self.update_callbacks:
-            cb()
+        for callback in self.update_callbacks:
+            callback()
 
     def run(self):
         while True:
@@ -85,7 +85,9 @@ class Engine:
             self.clock.tick(60)
             if not self.paused:
                 self.update()
+
             self.input_handler.update()
+
             for layer_name in ["background", "main", "ui", "overlay", "debug"]:
                 if not self.layer_visibility[layer_name]:
                     continue
@@ -126,6 +128,9 @@ class Engine:
         tooltip = Tooltip(tooltip_message, color=color)
         self.add_to_layer("overlay", tooltip)
         self.input_handler.register_hover(renderable, tooltip.set_hover)
+
+    def add_callback(self, callback):
+        self.update_callbacks.append(callback)
 
     def show_debug(self, statement):
         self.renderer.debug_statements.append(statement)
@@ -200,20 +205,3 @@ class Engine:
     def quit(self):
         pygame.quit()
         quit()
-
-
-if __name__ == "__main__":
-    engine = Engine()
-    ts = engine.current_scene
-    ts.title = "Scene"
-    ts.text = """asdasidasd
-        asdasdlkasd
-        askaslkdmsakdasmd
-        askdmasldmas.dmsad
-        asldkmasdlasd asld asd"""
-    ts.options = """1. [asd] asdsadasd
-        2. [M]ove to somewhere"""
-    engine.run()
-
-    # render scene
-    # scene

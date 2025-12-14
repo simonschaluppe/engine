@@ -177,8 +177,8 @@ if __name__ == "__main__":
     pygame.display.set_caption("game base")
     screen = pygame.display.set_mode((500, 500), 0, 32)
 
-    my_font = Font("assets/fonts/small_font.png")
-    my_big_font = Font("assets/fonts/large_font.png")
+    my_font = Font("deengi/fonts/small_font.png")
+    my_big_font = Font("deengi/fonts/large_font.png")
 
     # Loop ------------------------------------------------------- #
     while True:
